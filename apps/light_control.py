@@ -1,6 +1,4 @@
-from homeassistant.const import EVENT_CALL_SERVICE
 from datetime import datetime
-from enum import auto
 
 state_trackers = {}
 time_triggers = {}
@@ -196,11 +194,13 @@ def create_motion_triggered_light_control(light_group_entity, motion_sensor_enti
     @task_unique(motion_light_control_id + "_motion_trigger")
     @state_trigger(motion_sensor_entity + " == 'off'")
     def on_motion_cleared():
-        turn_off_timeout = state.get(turn_off_timeout_entity)
-        log.info("starting turn off timer with turn off timeout { "
-                 + turn_off_timeout_entity + ": " + turn_off_timeout +
-                 " } because no movement was detected by " + motion_sensor_entity)
-        timer.start(entity_id=turn_off_timer_entity, duration=turn_off_timeout)
+        if state.get(light_group_entity) == "on":
+            turn_off_timeout = state.get(turn_off_timeout_entity)
+            log.info("starting turn off timer with turn off timeout { "
+                     + turn_off_timeout_entity + ": " + turn_off_timeout +
+                     " } because no movement was detected by " + motion_sensor_entity)
+            timer.start(entity_id=turn_off_timer_entity,
+                        duration=turn_off_timeout)
 
     @task_unique(motion_light_control_id + "_light_manual_off_trigger")
     @state_trigger(light_group_entity + " == 'off'")
