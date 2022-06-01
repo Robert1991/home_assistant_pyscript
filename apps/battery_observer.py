@@ -1,11 +1,7 @@
+from tools.dict import replace_key_in_dict
+
 registered_battery_observer_triggers = {}
 registered_battery_observers = {}
-
-
-def replace_key_in_dict(dict, key, replace_object):
-    if key in dict.keys():
-        del dict[key]
-    dict[key] = replace_object
 
 
 def build_battery_observer_function(battery_observer, threshold_input_number):

@@ -1,3 +1,6 @@
+from tools.dict import replace_key_in_dict
+
+
 registered_state_observer_triggers = {}
 registered_state_observer_change_triggers = {}
 
@@ -84,12 +87,6 @@ def build_setup_state_observer_function(state_observer_key):
         replace_key_in_dict(
             registered_state_observer_triggers, state_observer_key, state_observer_function)
     return setup_observer_trigger
-
-
-def replace_key_in_dict(dict, key, replace_object):
-    if key in dict.keys():
-        del dict[key]
-    dict[key] = replace_object
 
 
 @time_trigger

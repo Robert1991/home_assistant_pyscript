@@ -1,3 +1,5 @@
+from tools.state import is_on
+
 registered_lcd_display_rotation_trigger = None
 
 
@@ -18,7 +20,7 @@ def format_message(next_for_display):
 
 def rotate_display(lcd_display_mqtt_topic, enabled_state_entity, displayed_entities, lcd_rotation_timeout):
     displayed_entity_index = 0
-    while state.get(enabled_state_entity) == "on":
+    while is_on(enabled_state_entity):
         next_for_display = displayed_entities[displayed_entity_index]
         mqtt.publish(topic=lcd_display_mqtt_topic,
                      payload=format_message(next_for_display))
