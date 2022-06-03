@@ -1,5 +1,5 @@
+from tools.state import is_on, is_off, is_entity_in_state
 from datetime import datetime
-from automations.motion_entity_control import create_motion_entity_control
 from tools.dict import get_logged_app_parameter_if_exists
 from tools.dict import replace_key_in_dict
 from tools.state import is_on, is_off
@@ -9,9 +9,82 @@ time_triggers = {}
 motion_triggers = {}
 
 
+def call_service_within_entity_domain(entity, service_name, **service_args):
+    entity_domain = entity.split(".")[0]
+    service.call(entity_domain, service_name, **service_args)
+
+
 def get_state_as_date_time(input_datetime_entity, format='%H:%M:%S'):
     return datetime.strptime(
         state.get(input_datetime_entity), format)
+
+
+def get_seconds_from_input_number(input_number_entity):
+    unit_of_measurement = state.getattr(input_number_entity)[
+        "unit_of_measurement"]
+
+    current_state = int(float(state.get(input_number_entity)))
+    if unit_of_measurement == "h":
+        return current_state*60*60
+    if unit_of_measurement == "min":
+        return current_state*60
+    return current_state
+
+
+def create_motion_entity_control(entity, motion_sensor_entity, automation_enabled_entity, turn_off_timeout_entity, timer_entity,
+                                 turn_on_function, turn_off_function, turn_on_condition=None):
+    motion_entity_control_id = "motion_entity_control_" + entity
+
+    @task_unique(motion_entity_control_id + "_motion_trigger")
+    @state_trigger(motion_sensor_entity + " == 'on'")
+    def on_motion_detected():
+        if automation_enabled_entity:
+            if is_off(automation_enabled_entity):
+                log.info("skipping automation on " + entity + " as " +
+                         automation_enabled_entity + " set to off")
+                return
+        if is_on(entity):
+            if is_entity_in_state(timer_entity, "active"):
+                log.info("stopping timer " + timer_entity +
+                         " because movement was detected by " + motion_sensor_entity)
+                timer.cancel(entity_id=timer_entity)
+            return
+        if turn_on_condition is not None and not turn_on_condition():
+            log.info("skip turning on " + entity +
+                     " as turn on condition was not met")
+            return
+        if turn_on_function:
+            turn_on_function()
+
+    @task_unique(motion_entity_control_id + "_motion_trigger")
+    @state_trigger(motion_sensor_entity + " == 'off'")
+    def on_motion_cleared():
+        if is_on(entity):
+            turn_off_timeout = get_seconds_from_input_number(
+                turn_off_timeout_entity)
+            log.info("starting turn off timer with turn off timeout { "
+                     + turn_off_timeout_entity + ": " + str(turn_off_timeout) +
+                     "s } because no movement was detected by " + motion_sensor_entity)
+            timer.start(entity_id=timer_entity,
+                        duration=turn_off_timeout)
+
+    @task_unique(motion_entity_control_id + "_entity_manual_off_trigger")
+    @state_trigger(entity + " == 'off'")
+    def kill_timer_after_entity_was_turned_off_manually():
+        if is_entity_in_state(timer_entity, "active"):
+            log.info("stopping " + timer_entity + " as entity " +
+                     entity + " was turned off manually.")
+            timer.cancel(entity_id=timer_entity)
+
+    @task_unique(motion_entity_control_id + "_timer_trigger")
+    @event_trigger("timer.finished", "entity_id == '" + timer_entity + "'")
+    def turn_off_entity_after_timer_finish(**kwargs):
+        log.info(f"got timer.finished from " + timer_entity +
+                 ". executing turn off: " + entity)
+        if turn_off_function:
+            turn_off_function()
+
+    return motion_entity_control_id, {on_motion_detected, on_motion_cleared, kill_timer_after_entity_was_turned_off_manually, turn_off_entity_after_timer_finish}
 
 
 def get_scene_toggle_time(time_switch_configuration):
@@ -28,20 +101,20 @@ def normalize_scene_name(scene_group_prefix, scene_name):
     return "scene." + scene_group_prefix + "_" + scene_name.lower().replace(" ", "_")
 
 
-def toggle_light_scene(scene_toggle_input_select, current_light_scene, light_group_entity,
-                       scene_group_prefix):
+def toggle_scene(scene_toggle_input_select, current_scene, controlled_entity,
+                 scene_group_prefix):
     log.info("toggling " + scene_toggle_input_select +
-             " to " + current_light_scene)
+             " to " + current_scene)
     input_select.select_option(
-        entity_id=scene_toggle_input_select, option=current_light_scene)
-    if is_on(light_group_entity):
+        entity_id=scene_toggle_input_select, option=current_scene)
+    if is_on(controlled_entity):
         current_scene_entity_id = normalize_scene_name(
-            scene_group_prefix, current_light_scene)
+            scene_group_prefix, current_scene)
         log.info("turning on scene " + current_scene_entity_id)
         scene.turn_on(entity_id=current_scene_entity_id)
 
 
-def determine_closest_beginning_light_scene(time_to_scene_selects):
+def determine_closest_beginning_scene(time_to_scene_selects):
     current_time_stamp = datetime.now()
     current_latest_time_scene_time = None
     current_latest_time_scene = None
@@ -58,7 +131,7 @@ def determine_closest_beginning_light_scene(time_to_scene_selects):
     return current_latest_time_scene
 
 
-def determine_latest_beginning_light_scene(time_to_scene_selects):
+def determine_latest_beginning_scene(time_to_scene_selects):
     current_latest_time = None
     current_latest_time_scene = None
     for time_to_scene_select in time_to_scene_selects:
@@ -73,7 +146,7 @@ def determine_latest_beginning_light_scene(time_to_scene_selects):
     return current_latest_time_scene
 
 
-def create_time_trigger_execution_function(time_switch_configuration, light_group_entity, scene_toggle_input_select,
+def create_time_trigger_execution_function(time_switch_configuration, controlled_entity, scene_toggle_input_select,
                                            scene_group_prefix, automation_enabled_entity):
     input_datetime_entity = get_scene_toggle_time(time_switch_configuration)
     time_trigger_id = "time_trigger_" + input_datetime_entity
@@ -90,15 +163,15 @@ def create_time_trigger_execution_function(time_switch_configuration, light_grou
             return
 
         input_select_entity = get_scene_input_select(time_switch_configuration)
-        current_light_scene = state.get(input_select_entity)
-        toggle_light_scene(scene_toggle_input_select,
-                           current_light_scene,
-                           light_group_entity,
-                           scene_group_prefix)
+        current_scene = state.get(input_select_entity)
+        toggle_scene(scene_toggle_input_select,
+                     current_scene,
+                     controlled_entity,
+                     scene_group_prefix)
     return time_trigger_id, execute_on_time_trigger
 
 
-def create_refresh_time_trigger_function(time_switch_configuration, light_group_entity, scene_toggle_input_select,
+def create_refresh_time_trigger_function(time_switch_configuration, controlled_entity, scene_toggle_input_select,
                                          time_to_scene_selects, scene_group_prefix, automation_enabled_entity):
     input_datetime_entity = get_scene_toggle_time(time_switch_configuration)
     input_select_entity = get_scene_input_select(time_switch_configuration)
@@ -115,7 +188,7 @@ def create_refresh_time_trigger_function(time_switch_configuration, light_group_
             time_switch_configuration)
         log.info("Refreshing time trigger for " + input_datetime_entity)
         time_trigger_id, time_trigger_execution = create_time_trigger_execution_function(time_switch_configuration,
-                                                                                         light_group_entity,
+                                                                                         controlled_entity,
                                                                                          scene_toggle_input_select,
                                                                                          scene_group_prefix,
                                                                                          automation_enabled_entity)
@@ -125,15 +198,15 @@ def create_refresh_time_trigger_function(time_switch_configuration, light_group_
             log.info("Skip setting as automation is disabled for " +
                      input_datetime_entity)
             return
-        current_light_scene = determine_closest_beginning_light_scene(
+        current_scene = determine_closest_beginning_scene(
             time_to_scene_selects)
-        if not current_light_scene:
-            current_light_scene = determine_latest_beginning_light_scene(
+        if not current_scene:
+            current_scene = determine_latest_beginning_scene(
                 time_to_scene_selects)
-        toggle_light_scene(scene_toggle_input_select,
-                           current_light_scene,
-                           light_group_entity,
-                           scene_group_prefix)
+        toggle_scene(scene_toggle_input_select,
+                     current_scene,
+                     controlled_entity,
+                     scene_group_prefix)
 
     return state_tracker_id, refresh_time_trigger
 
@@ -158,80 +231,82 @@ def is_light_intensity_sufficient(light_intensity_control):
     return False
 
 
-def create_motion_triggered_scene_based_light_control(light_group_entity, motion_sensor_entity, motion_triggered_light_enabled_entity, turn_off_timer_entity,
-                                                      turn_off_timeout_entity, light_intensity_control, current_scene_input_select, scene_group_prefix):
-    def turn_on_light_scene_based():
-        current_light_scene = state.get(current_scene_input_select)
+def create_activity_based_scene_based_entity_control(controlled_entity, motion_sensor_entity, activity_based_entity_control_enabled, turn_off_timer_entity,
+                                                     turn_off_timeout_entity, light_intensity_control, current_scene_input_select, scene_group_prefix):
+    def turn_on_entity_scene_based():
+        current_scene = state.get(current_scene_input_select)
         current_scene_entity_id = normalize_scene_name(
-            scene_group_prefix, current_light_scene)
+            scene_group_prefix, current_scene)
         log.info("turning on scene " + current_scene_entity_id +
                  " because movement was detected by " + motion_sensor_entity)
         scene.turn_on(entity_id=current_scene_entity_id)
 
     def light_intensity_turn_on_condition():
         if is_light_intensity_sufficient(light_intensity_control):
-            log.info("skip turning on " + light_group_entity +
+            log.info("skip turning on " + controlled_entity +
                      " as light was determined to be sufficient")
             return False
         return True
 
     def turn_off_function():
-        light.turn_off(entity_id=light_group_entity)
+        call_service_within_entity_domain(
+            controlled_entity, "turn_off", entity_id=controlled_entity)
 
-    return create_motion_entity_control(light_group_entity,
+    return create_motion_entity_control(controlled_entity,
                                         motion_sensor_entity,
-                                        motion_triggered_light_enabled_entity,
+                                        activity_based_entity_control_enabled,
                                         turn_off_timeout_entity,
                                         turn_off_timer_entity,
-                                        turn_on_light_scene_based,
+                                        turn_on_entity_scene_based,
                                         turn_off_function,
                                         light_intensity_turn_on_condition)
 
 
-def create_motion_triggered_light_control(light_group_entity, motion_sensor_entity, motion_triggered_light_enabled_entity, turn_off_timer_entity,
-                                          turn_off_timeout_entity):
-    def turn_on_light():
-        log.info("turning on " + light_group_entity +
+def create_activity_based_entity_control(controlled_entity, motion_sensor_entity, automation_enabled_entity,
+                                         turn_off_timer_entity, turn_off_timeout_entity):
+    def turn_on_entity():
+        log.info("turning on " + controlled_entity +
                  " because movement was detected by " + motion_sensor_entity)
-        light.turn_on(light_group_entity)
+        call_service_within_entity_domain(
+            controlled_entity, "turn_on", entity_id=controlled_entity)
 
-    def turn_off_light():
-        light.turn_off(entity_id=light_group_entity)
+    def turn_off_entity():
+        call_service_within_entity_domain(
+            controlled_entity, "turn_off", entity_id=controlled_entity)
 
-    return create_motion_entity_control(light_group_entity,
+    return create_motion_entity_control(controlled_entity,
                                         motion_sensor_entity,
-                                        motion_triggered_light_enabled_entity,
+                                        automation_enabled_entity,
                                         turn_off_timeout_entity,
                                         turn_off_timer_entity,
-                                        turn_on_light,
-                                        turn_off_light,
-                                        None)
+                                        turn_on_entity,
+                                        turn_off_entity)
 
 
-class LightControlConfig:
-    def __init__(self, config_name, light_control_config):
+class ActivityBasedEntityControlConfig:
+    def __init__(self, config_name, entity_control_config):
         self.config_name = config_name
-        self.light_group_entity = get_logged_app_parameter_if_exists(
-            light_control_config, "light_group_entity")
+        self.controlled_entity = get_logged_app_parameter_if_exists(
+            entity_control_config, "entity")
         self.motion_sensor_entity = get_logged_app_parameter_if_exists(
-            light_control_config, "motion_sensor_entity")
-        self.motion_triggered_light_enabled_entity = get_logged_app_parameter_if_exists(
-            light_control_config, "motion_triggered_light_enabled_entity")
+            entity_control_config, "motion_sensor_entity")
+        self.activity_based_entity_control_enabled_entity = get_logged_app_parameter_if_exists(
+            entity_control_config, "automation_enabled_entity")
         self.turn_off_timeout_entity = get_logged_app_parameter_if_exists(
-            light_control_config, "turn_off_timeout_entity")
+            entity_control_config, "turn_off_timeout_entity")
         self.turn_off_timer_entity = get_logged_app_parameter_if_exists(
-            light_control_config, "turn_off_timer_entity")
+            entity_control_config, "turn_off_timer_entity")
 
         self.light_intensity_control = get_logged_app_parameter_if_exists(
-            light_control_config, "light_intensity_control")
+            entity_control_config, "light_intensity_control")
 
         self.scene_toggle_input_select = get_logged_app_parameter_if_exists(
-            light_control_config, "scene_toggle_entity")
+            entity_control_config, "scene_toggle_entity")
         self.scene_group_prefix = get_logged_app_parameter_if_exists(
-            light_control_config, "scene_group_prefix")
+            entity_control_config, "scene_group_prefix")
 
         time_based_scene_switch_config = get_logged_app_parameter_if_exists(
-            light_control_config, "time_based_scene_switch")
+            entity_control_config, "time_based_scene_switch")
 
         self.scene_switch_configuration = None
         if time_based_scene_switch_config:
@@ -249,7 +324,7 @@ class LightControlConfig:
                 self.scene_switch_configuration)["options"]
             for time_switch_configuration in time_to_scene_selects:
                 state_tracker_id, refresh_time_trigger_function = create_refresh_time_trigger_function(time_switch_configuration,
-                                                                                                       self.light_group_entity,
+                                                                                                       self.controlled_entity,
                                                                                                        self.scene_toggle_input_select,
                                                                                                        time_to_scene_selects,
                                                                                                        self.scene_group_prefix,
@@ -258,7 +333,7 @@ class LightControlConfig:
                                     refresh_time_trigger_function)
 
                 time_trigger_id, time_trigger_execution = create_time_trigger_execution_function(time_switch_configuration,
-                                                                                                 self.light_group_entity,
+                                                                                                 self.controlled_entity,
                                                                                                  self.scene_toggle_input_select,
                                                                                                  self.scene_group_prefix,
                                                                                                  self.scene_switch_automation_enabled_entity)
@@ -267,35 +342,41 @@ class LightControlConfig:
 
     def create_motion_trigger_function(self):
         if not self.scene_switch_configuration:
-            return create_motion_triggered_light_control(self.light_group_entity,
-                                                         self.motion_sensor_entity,
-                                                         self.motion_triggered_light_enabled_entity,
-                                                         self.turn_off_timer_entity,
-                                                         self.turn_off_timeout_entity)
+            return create_activity_based_entity_control(self.controlled_entity,
+                                                        self.motion_sensor_entity,
+                                                        self.activity_based_entity_control_enabled_entity,
+                                                        self.turn_off_timer_entity,
+                                                        self.turn_off_timeout_entity)
 
-        return create_motion_triggered_scene_based_light_control(self.light_group_entity,
-                                                                 self.motion_sensor_entity,
-                                                                 self.motion_triggered_light_enabled_entity,
-                                                                 self.turn_off_timer_entity,
-                                                                 self.turn_off_timeout_entity,
-                                                                 self.light_intensity_control,
-                                                                 self.scene_toggle_input_select,
-                                                                 self.scene_group_prefix)
+        return create_activity_based_scene_based_entity_control(self.controlled_entity,
+                                                                self.motion_sensor_entity,
+                                                                self.activity_based_entity_control_enabled_entity,
+                                                                self.turn_off_timer_entity,
+                                                                self.turn_off_timeout_entity,
+                                                                self.light_intensity_control,
+                                                                self.scene_toggle_input_select,
+                                                                self.scene_group_prefix)
 
 
-@time_trigger
-def setup_time_based_scene_switches():
+def register_entity_control_config(entity_control_config):
     global state_trackers
     global time_triggers
     global motion_triggers
 
-    log.info("Setting up light control")
+    entity_control_config_name = list(entity_control_config.keys())[0]
+    log.info("Setting up: " + entity_control_config_name)
+    entity_control_config = ActivityBasedEntityControlConfig(
+        entity_control_config_name, entity_control_config[entity_control_config_name])
+    entity_control_config.register(
+        motion_triggers, state_trackers, time_triggers)
 
-    for light_control_config_name in pyscript.app_config.keys():
-        light_control_config = pyscript.app_config[light_control_config_name]
 
-        log.info("Setting up: " + light_control_config_name)
-        light_control_config = LightControlConfig(
-            light_control_config_name, light_control_config)
-        light_control_config.register(
-            motion_triggers, state_trackers, time_triggers)
+@time_trigger
+def setup_activity_based_entity_control():
+    log.info("Setting up activity based entity control")
+    for app_config_part in pyscript.app_config:
+        if isinstance(app_config_part, list):
+            for entity_control_config in app_config_part:
+                register_entity_control_config(entity_control_config)
+        else:
+            register_entity_control_config(app_config_part)
