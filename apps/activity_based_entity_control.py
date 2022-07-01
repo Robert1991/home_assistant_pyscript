@@ -1,8 +1,7 @@
-from tools.state import is_on, is_off, is_entity_in_state
+from tools.state import is_off, is_entity_in_state
 from datetime import datetime
 from tools.dict import get_logged_app_parameter_if_exists
 from tools.dict import replace_key_in_dict
-from tools.state import is_on, is_off
 
 state_trackers = {}
 time_triggers = {}
@@ -43,7 +42,7 @@ def create_motion_entity_control(entity, motion_sensor_entity, automation_enable
                 log.info("skipping automation on " + entity + " as " +
                          automation_enabled_entity + " set to off")
                 return
-        if is_on(entity):
+        if not is_off(entity):
             if is_entity_in_state(timer_entity, "active"):
                 log.info("stopping timer " + timer_entity +
                          " because movement was detected by " + motion_sensor_entity)
@@ -53,13 +52,13 @@ def create_motion_entity_control(entity, motion_sensor_entity, automation_enable
             log.info("skip turning on " + entity +
                      " as turn on condition was not met")
             return
-        if turn_on_function:
+        if turn_on_function is not None:
             turn_on_function()
 
     @task_unique(motion_entity_control_id + "_motion_trigger")
     @state_trigger(motion_sensor_entity + " == 'off'")
     def on_motion_cleared():
-        if is_on(entity):
+        if not is_off(entity):
             turn_off_timeout = get_seconds_from_input_number(
                 turn_off_timeout_entity)
             log.info("starting turn off timer with turn off timeout { "
@@ -81,7 +80,7 @@ def create_motion_entity_control(entity, motion_sensor_entity, automation_enable
     def turn_off_entity_after_timer_finish(**kwargs):
         log.info(f"got timer.finished from " + timer_entity +
                  ". executing turn off: " + entity)
-        if turn_off_function:
+        if turn_off_function is not None:
             turn_off_function()
 
     return motion_entity_control_id, {on_motion_detected, on_motion_cleared, kill_timer_after_entity_was_turned_off_manually, turn_off_entity_after_timer_finish}
@@ -107,7 +106,7 @@ def toggle_scene(scene_toggle_input_select, current_scene, controlled_entity,
              " to " + current_scene)
     input_select.select_option(
         entity_id=scene_toggle_input_select, option=current_scene)
-    if is_on(controlled_entity):
+    if not is_off(controlled_entity):
         current_scene_entity_id = normalize_scene_name(
             scene_group_prefix, current_scene)
         log.info("turning on scene " + current_scene_entity_id)
@@ -231,58 +230,6 @@ def is_light_intensity_sufficient(light_intensity_control):
     return False
 
 
-def create_activity_based_scene_based_entity_control(controlled_entity, motion_sensor_entity, activity_based_entity_control_enabled, turn_off_timer_entity,
-                                                     turn_off_timeout_entity, light_intensity_control, current_scene_input_select, scene_group_prefix):
-    def turn_on_entity_scene_based():
-        current_scene = state.get(current_scene_input_select)
-        current_scene_entity_id = normalize_scene_name(
-            scene_group_prefix, current_scene)
-        log.info("turning on scene " + current_scene_entity_id +
-                 " because movement was detected by " + motion_sensor_entity)
-        scene.turn_on(entity_id=current_scene_entity_id)
-
-    def light_intensity_turn_on_condition():
-        if is_light_intensity_sufficient(light_intensity_control):
-            log.info("skip turning on " + controlled_entity +
-                     " as light was determined to be sufficient")
-            return False
-        return True
-
-    def turn_off_function():
-        call_service_within_entity_domain(
-            controlled_entity, "turn_off", entity_id=controlled_entity)
-
-    return create_motion_entity_control(controlled_entity,
-                                        motion_sensor_entity,
-                                        activity_based_entity_control_enabled,
-                                        turn_off_timeout_entity,
-                                        turn_off_timer_entity,
-                                        turn_on_entity_scene_based,
-                                        turn_off_function,
-                                        light_intensity_turn_on_condition)
-
-
-def create_activity_based_entity_control(controlled_entity, motion_sensor_entity, automation_enabled_entity,
-                                         turn_off_timer_entity, turn_off_timeout_entity):
-    def turn_on_entity():
-        log.info("turning on " + controlled_entity +
-                 " because movement was detected by " + motion_sensor_entity)
-        call_service_within_entity_domain(
-            controlled_entity, "turn_on", entity_id=controlled_entity)
-
-    def turn_off_entity():
-        call_service_within_entity_domain(
-            controlled_entity, "turn_off", entity_id=controlled_entity)
-
-    return create_motion_entity_control(controlled_entity,
-                                        motion_sensor_entity,
-                                        automation_enabled_entity,
-                                        turn_off_timeout_entity,
-                                        turn_off_timer_entity,
-                                        turn_on_entity,
-                                        turn_off_entity)
-
-
 class ActivityBasedEntityControlConfig:
     def __init__(self, config_name, entity_control_config):
         self.config_name = config_name
@@ -296,6 +243,13 @@ class ActivityBasedEntityControlConfig:
             entity_control_config, "turn_off_timeout_entity")
         self.turn_off_timer_entity = get_logged_app_parameter_if_exists(
             entity_control_config, "turn_off_timer_entity")
+
+        skip_turn_on = get_logged_app_parameter_if_exists(
+            entity_control_config, "skip_turn_on")
+        if not skip_turn_on:
+            self.skip_turn_on = False
+        else:
+            self.skip_turn_on = True
 
         self.light_intensity_control = get_logged_app_parameter_if_exists(
             entity_control_config, "light_intensity_control")
@@ -342,20 +296,63 @@ class ActivityBasedEntityControlConfig:
 
     def create_motion_trigger_function(self):
         if not self.scene_switch_configuration:
-            return create_activity_based_entity_control(self.controlled_entity,
-                                                        self.motion_sensor_entity,
-                                                        self.activity_based_entity_control_enabled_entity,
-                                                        self.turn_off_timer_entity,
-                                                        self.turn_off_timeout_entity)
+            return self.create_activity_based_entity_control()
 
-        return create_activity_based_scene_based_entity_control(self.controlled_entity,
-                                                                self.motion_sensor_entity,
-                                                                self.activity_based_entity_control_enabled_entity,
-                                                                self.turn_off_timer_entity,
-                                                                self.turn_off_timeout_entity,
-                                                                self.light_intensity_control,
-                                                                self.scene_toggle_input_select,
-                                                                self.scene_group_prefix)
+        return self.create_activity_based_scene_based_entity_control()
+
+    def create_activity_based_entity_control(self):
+        def turn_on_entity():
+            log.info(self.config_name + ": turning on " + self.controlled_entity +
+                     " because movement was detected by " + self.motion_sensor_entity)
+            call_service_within_entity_domain(
+                self.controlled_entity, "turn_on", entity_id=self.controlled_entity)
+
+        def turn_off_entity():
+            call_service_within_entity_domain(
+                self.controlled_entity, "turn_off", entity_id=self.controlled_entity)
+
+        turn_on_entity_function = None
+        if not self.skip_turn_on:
+            turn_on_entity_function = turn_on_entity
+
+        return create_motion_entity_control(self.controlled_entity,
+                                            self.motion_sensor_entity,
+                                            self.activity_based_entity_control_enabled_entity,
+                                            self.turn_off_timeout_entity,
+                                            self.turn_off_timer_entity,
+                                            turn_on_entity_function,
+                                            turn_off_entity)
+
+    def create_activity_based_scene_based_entity_control(self):
+        def turn_on_entity_scene_based():
+            current_scene = state.get(self.scene_toggle_input_select)
+            current_scene_entity_id = normalize_scene_name(
+                self.scene_group_prefix, current_scene)
+            log.info(self.config_name + ": turning on scene " + current_scene_entity_id +
+                     " because movement was detected by " + self.motion_sensor_entity)
+            scene.turn_on(entity_id=current_scene_entity_id)
+
+        def light_intensity_turn_on_condition():
+            if self.light_intensity_control is not None and is_light_intensity_sufficient(self.light_intensity_control):
+                log.info(self.config_name + ": skip turning on " + self.controlled_entity +
+                         " as light was determined to be sufficient")
+                return False
+            return True
+
+        def turn_off_function():
+            call_service_within_entity_domain(
+                self.controlled_entity, "turn_off", entity_id=self.controlled_entity)
+
+        log.info("light_control   " + str(self.light_intensity_control))
+
+        return create_motion_entity_control(self.controlled_entity,
+                                            self.motion_sensor_entity,
+                                            self.activity_based_entity_control_enabled_entity,
+                                            self.turn_off_timeout_entity,
+                                            self.turn_off_timer_entity,
+                                            turn_on_entity_scene_based,
+                                            turn_off_function,
+                                            light_intensity_turn_on_condition)
 
 
 def register_entity_control_config(entity_control_config):
