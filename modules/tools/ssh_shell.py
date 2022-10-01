@@ -5,10 +5,10 @@ import subprocess
 def run_remote_shell_command(command, ssh_login, ssh_key_path, sudo_password=None):
     command_array = command.split(" ")
     if sudo_password:
-        command_array = ['ssh', '-i', ssh_key_path, ssh_login,
+        command_array = ['ssh', '-i', ssh_key_path, ssh_login, '-F', '/config/.ssh/config'
                          'echo', sudo_password, "|"] + command_array
     else:
-        command_array = ['ssh', '-i', ssh_key_path,
+        command_array = ['ssh', '-i', ssh_key_path, '-F', '/config/.ssh/config',
                          ssh_login] + command_array
     return subprocess.run(command_array, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
