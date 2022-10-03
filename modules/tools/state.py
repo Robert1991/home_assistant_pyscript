@@ -1,3 +1,5 @@
+from datetime import datetime
+
 
 def is_entity_in_state(entity, target_state):
     return state.get(entity) == target_state
@@ -26,3 +28,8 @@ def get_seconds_from_input_number(input_number_entity):
     if unit_of_measurement == "min":
         return current_state*60
     return current_state
+
+
+def get_state_as_date_time(input_datetime_entity, format='%H:%M:%S'):
+    return datetime.strptime(
+        state.get(input_datetime_entity), format)

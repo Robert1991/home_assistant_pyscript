@@ -1,21 +1,12 @@
-from tools.state import is_off, is_entity_in_state
+from tools.state import is_off, is_entity_in_state, get_state_as_date_time
 from datetime import datetime
+from tools.entity import call_service_within_entity_domain
 from tools.dict import get_logged_app_parameter_if_exists
 from tools.dict import replace_key_in_dict
 
 state_trackers = {}
 time_triggers = {}
 motion_triggers = {}
-
-
-def call_service_within_entity_domain(entity, service_name, **service_args):
-    entity_domain = entity.split(".")[0]
-    service.call(entity_domain, service_name, **service_args)
-
-
-def get_state_as_date_time(input_datetime_entity, format='%H:%M:%S'):
-    return datetime.strptime(
-        state.get(input_datetime_entity), format)
 
 
 def get_seconds_from_input_number(input_number_entity):
