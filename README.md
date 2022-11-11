@@ -1,6 +1,6 @@
 # Home assistant pyscript automations
 
-This repository comprises my homeassistant automations written with pyscript. I use these automations on my own smart home server as well as the one I've running at my parents place.
+This repository comprises my homeassistant automations (https://www.home-assistant.io/) written with pyscript (https://hacs-pyscript.readthedocs.io). I use these automations on my own smart home server as well as the one I've running at my parents place.
 
 ## Apps
 
