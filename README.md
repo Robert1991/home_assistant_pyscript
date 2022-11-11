@@ -8,7 +8,7 @@ This repository comprises my homeassistant automations written with pyscript. I 
 
 This app can be used to control an entity based on the state of some binary sensor detecting some activity. An example would be turning off the light when no actitvity was detected in a certain room. This app can also be used to toggle scenes based on activity.
 
-Configuration in pyscript_config.yaml
+#### Configuration in pyscript_config.yaml:
 
 ```yaml
 allow_all_imports: true
@@ -110,3 +110,35 @@ bedroom_day_light_choosen_scene:
   - Work
 ```
 
+
+### Battery observer
+
+This automation observes different entities displaying the battery state of certain devices. You can define an input number, to determine at which percentage you want a notification sent about low battery state.
+
+#### Configuration in pyscript_config.yaml:
+
+```yaml
+allow_all_imports: true
+hass_is_global: true
+apps:
+  battery_observer:
+    default_threshold_entity: [input number between 0 and 100 defining the nofitication threshold]
+    observed_entities: 
+      - entity: [entity displaying battery percentag between 0 and 100]
+      - ...
+    reminder_timeout: [timeout for resending the notification in minutes]
+```
+
+#### Example:
+
+```yaml
+allow_all_imports: true
+hass_is_global: true
+apps:
+  battery_observer:
+    default_threshold_entity: input_number.default_battery_alert_threshold
+    observed_entities: 
+      - entity: sensor.bedroom_button_1_battery
+      - entity: sensor.bedroom_button_2_battery
+    reminder_timeout: 720
+```
