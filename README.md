@@ -142,3 +142,35 @@ apps:
       - entity: sensor.bedroom_button_2_battery
     reminder_timeout: 720
 ```
+
+### Entity Unavailable Notification Service
+
+This app currently logs if an entity gets unavailable. The plan is to have it send push notifcations in the future.
+
+```yaml
+allow_all_imports: true
+hass_is_global: true
+apps:
+  entity_unavailable_notification_service:
+    - entity: [entity to be observed]
+      notify_every: [notification resend timeout in minutes]
+      message: [message which will be send with the notification]
+    - [...]
+```
+
+#### Example
+
+```yaml
+allow_all_imports: true
+hass_is_global: true
+apps:
+  entity_unavailable_notification_service:
+    - entity: light.bedroom_light
+      notify_every: 60
+      message: Bedroom Light is unavailable
+    - entity: light.kitchen_light
+      message: Kitchen Light is unavailable
+      notify_every: 60
+```
+
+
