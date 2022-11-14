@@ -173,4 +173,72 @@ apps:
       notify_every: 60
 ```
 
+### Home server update
+
+With this app, you can setup pyscript to update your home assistant server, if it is run via docker compose on an ubuntu server using apt. In order to do that, you'll need an binary command line sensor indicating, that updates are available. This binary sensor works by using a sensor, which indicates the update count. This sensor is based on a command line sensor, also implemented within this respository.
+
+If you want to use this automation, you'll first need to define the following two sensors:
+
+**Command line sensor for showing update state:**
+```yaml
+- platform: command_line
+  name: home_server_update_state
+  command: /config/pyscript/sensors/update_sensor.py
+  value_template: "{{ value_json['total_updates'] }}"
+  json_attributes:
+    - total_updates
+    - security_updates
+```
+
+**Binary sensor indicating whether there are updates:**
+
+```yaml
+- platform: template
+  sensors:
+    home_server_updates_available:
+      value_template: >
+        {{ states('sensor.home_server_update_state') | int > 0 or state_attr('sensor.home_server_update_state', 'security_updates') | int > 0}}
+```
+
+To have pyscript updating your server, it uses the *home_server_update* service, which is described below. The automation has to be configured like the following in the pyscript config file:
+
+```yaml
+allow_all_imports: true
+hass_is_global: true
+apps:
+  home_server_update:
+    update_log: [file to store the logs produced by the home server update]
+```
+
+#### Home server update service
+
+Another prerequisite to have pyscript updating your server, is to configure pyscript globally to be able to access the server, where home assistant is run on. Pyscript accesses your server via ssh, so you'll need to exchange ssh keys between your server and the home assistant container. After that you'll need to do the following global pyscript configurations:
+
+```yaml
+allow_all_imports: true
+hass_is_global: true
+apps:
+  home_server_update:
+    update_log: [file to store the logs produced by the home server update]
+global:
+  host_server:
+    ssh_key: [path to homeassistant private ssh key]
+    ssh_login: [login on server]
+    ssh_sudo: [sudo password for sudo on server]
+```
+
+#### Example
+
+```yaml
+allow_all_imports: true
+hass_is_global: true
+apps:
+  home_server_update:
+    update_log: /config/tmp/apt_update.log
+global:
+  host_server:
+    ssh_key: "/config/.ssh/id_rsa"
+    ssh_login: "robert@some-server"
+    ssh_sudo: !secret host_sudo
+```
 
