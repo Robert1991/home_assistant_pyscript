@@ -285,3 +285,36 @@ apps:
         name: Energy Cons.
         unit: "W"
 ```
+
+### Netatmo event logger
+
+At the smart home at my parents house, we connected several netatmo security camers (e.g. https://www.netatmo.com/en-us/security/cam-outdoor). These cameras are able to detected humans, cars and animals. The netatmo event logger app will log these events and download the corresponding pictures from the netatmo cloud service. The events which will be logged with a picture are named "human", "animal", "vehicle", "movement" in the netatmo service. In order to get this automation running, you'll need to connect your netatmo account with your homeassistant (https://www.home-assistant.io/integrations/netatmo/). 
+At the moment, pictures will be put statically to "/config/tmp/" within the homeassistant docker container.
+
+```yaml
+allow_all_imports: true
+hass_is_global: true
+apps:
+  netatmo_event_logger:
+    event_log: [file name of the event log]
+    cameras:
+      - name: [name of camera, will be used as folder name for the picture store]
+        id: [mac address of camera (this is the id used to identify the camera via netatmo cloud api and can be retrieved from homeassistant entity data)]
+    max_snapshots: [number of snapshots to keep]
+```
+
+#### Example
+
+```yaml
+allow_all_imports: true
+hass_is_global: true
+apps:
+  netatmo_event_logger:
+    event_log: /config/tmp/netatmo_event.log
+    cameras:
+      - name: outside_camera_garage
+        id: 70:ff:50:22:4e:ae
+      - name: inside_camera_dining_room
+        id: 70:ff:50:22:a0:f7
+    max_snapshots: 100
+```
