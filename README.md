@@ -1,12 +1,25 @@
 # Home assistant pyscript automations
 
 This repository comprises my homeassistant automations (https://www.home-assistant.io/) written with pyscript (https://hacs-pyscript.readthedocs.io). I use these automations on my own smart home server as well as the one I've running at my parents place.
+To use these automations, checkout this repository in your homeassistant conifguration directory and name it `pyscript`. Your pyscript configuration yaml file has to be placed outside the pyscript folder. Configure the following in your homeassistant configuration.yaml (e.g. you named your pyscript config yaml file 'pyscript_config.yaml'):
+
+```yaml
+default_config:
+
+homeassistant:
+  elevation: 130
+  time_zone: Europe/Berlin
+  customize: !include customize.yaml
+
+pyscript: !include pyscript_config.yaml
+```
 
 ## Apps
 
 ### Activity based entity control
 
-This app can be used to control an entity based on the state of some binary sensor detecting some activity. An example would be turning off the light when no actitvity was detected in a certain room. This app can also be used to toggle scenes based on activity.
+This app can be used to control an entity based on the state of some binary sensor detecting some activity. An example would be turning off the light when no actitvity was detected in a certain room. This app can also be used to toggle scenes based on activity. 
+
 
 #### Configuration in pyscript_config.yaml:
 
