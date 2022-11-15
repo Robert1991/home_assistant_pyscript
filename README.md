@@ -318,3 +318,82 @@ apps:
         id: 70:ff:50:22:a0:f7
     max_snapshots: 100
 ```
+
+### State observer
+
+With this app you can observe the state of a given entity and have several actions triggered, if the entity changes to a certain interesting state. An example would be sending a notification to open the window if the humidity in your bathroom is over a certain critical threshold. At my former flat, I had a door sensor connected to my fridge door. If the frigde was opened for longer than a given timeout (e.g. 70 seconds) I was notified on my phone. After closing the fridge door again, I got another notification. With this app you can have a mulitple actions when the observed state is met by the entity and when it was left again.
+
+```yaml
+allow_all_imports: true
+hass_is_global: true
+apps:
+state_observer:
+  [name of the state observer]:
+    observed_entity: [entity to be observed]
+    observed_state: [target state which will trigger automations]
+    timeout_input_number: [input number specifying how long the entity can be in the observed state without having the actions triggered (optional)]
+    actions:
+      - service: [service registered in home assistant which will be called]
+        arguments:
+          [service data (see example)]
+      - ...
+    state_resolved_actions:
+      - service: [service registered in home assistant which will be called]
+        arguments:
+          [service data (see example)]
+      - ...
+```
+
+#### Examples:
+
+Here the configuration for the described examples above:
+
+
+```yaml
+allow_all_imports: true
+hass_is_global: true
+apps:
+ state_observer:
+    trigger_alarm_when_fridge_is_open:
+      observed_entity: binary_sensor.kitchen_sensor_door_sensor
+      observed_state: "on"
+      timeout_input_number: input_number.kitchen_frigde_door_open_alarm_timeout
+      actions:
+        - service: notify.mobile_app_iphone_von_robert
+          arguments:
+            title: "Fridge door was left open!"
+            message: "Fridge door is open, close it to save the planet!"
+            data:
+              actions:
+                - action: "URI"
+                  title: "Open Kitchen Overview"
+                  uri: "/lovelace/kitchen"
+        - service: pyscript.light_blink
+          arguments:
+            entity: light.kitchen_ceiling_light_light_switch
+            state_entity: binary_sensor.kitchen_sensor_door_sensor
+            target_state: "on"
+      state_resolved_actions:
+        - service: notify.mobile_app_iphone_von_robert
+          arguments:
+            title: "Fridge was closed again."
+            message: "Thanks for not ruining the planet!"
+    trigger_alarm_when_plant_closet_is_too_hot:
+      observed_entity: binary_sensor.humidity_is_too_high_in_bathroom
+      observed_state: "on"
+      actions:
+        - service: notify.mobile_app_iphone_von_robert
+          arguments:
+            title: "Humidity Alarm"
+            message: "Better open a window in the bathroom..."
+            data:
+              actions:
+                - action: "URI"
+                  title: "Open bathroom sensor overview"
+                  uri: "/lovelace/bathroom"
+      state_resolved_actions:
+        - service: notify.mobile_app_iphone_von_robert
+          arguments:
+            title: "Humidity Alarm Resolved"
+            message: "Calm down and have a coffee"
+```
