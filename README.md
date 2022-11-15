@@ -410,3 +410,36 @@ apps:
             title: "Humidity Alarm Resolved"
             message: "Calm down and have a coffee"
 ```
+
+### Time based entity control
+
+With this app you can toggle entites at given points of time. An example would be turning on a light at night time and turing it off at day time. Start and end of the interval will be given as input date_time.
+
+```yaml
+allow_all_imports: true
+hass_is_global: true
+apps:
+  time_based_entity_control:
+    - [self chosen name of automation]:
+        entity: [name of entity which will be toggled]
+        interval_start: [input date time entity defining start time]
+        interval_end: [input date time entity defining end time]
+        target_state: [target state, can be "on" or "off"]
+        automation_enabled_entity: [input boolean to disable automation]
+    - ...
+```
+
+#### Example
+
+```yaml
+allow_all_imports: true
+hass_is_global: true
+apps:
+  time_based_entity_control:
+    - outside_light_control:
+        entity: switch.outside_lights
+        interval_start: input_datetime.outside_light_turn_on_time
+        interval_end: input_datetime.outside_light_turn_off_time
+        target_state: "on"
+        automation_enabled_entity: input_boolean.outside_light_automation_enabled
+```
