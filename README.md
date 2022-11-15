@@ -242,3 +242,46 @@ global:
     ssh_sudo: !secret host_sudo
 ```
 
+### LCD Display Rotation
+
+I wrote this app, as I've contructed an ESP8266 microcontoller based LCD display which is able to receive messages to be displayed via MQTT message queue topics. The device listens to a specific mqtt topic and displays the message sent.
+
+
+```yaml
+allow_all_imports: true
+hass_is_global: true
+apps:
+  lcd_display_rotation:
+    display_topic: [mqtt topic to listen to]
+    rotate_timeout_entity: [input number entity for rotation timeout in seconds]
+    rotation_enabled_entity: [input boolean entity for enabling/disabling rotation]
+    displayed_entities:
+      - entity: [entity which displays the value, e.g. sensor entity]
+        name: [name shown on lcd display]
+        unit: [unit of the displayed value]
+      - ...
+```
+
+![IMG_1216](https://user-images.githubusercontent.com/8775020/201952749-ccfcf852-e65c-4ee6-90bc-4c81af222ca1.jpeg)
+
+#### Example
+
+```yaml
+allow_all_imports: true
+hass_is_global: true
+apps:
+  lcd_display_rotation:
+    display_topic: mqtt_lcd_display/show
+    rotate_timeout_entity: input_number.lcd_display_rotation_timeout
+    rotation_enabled_entity: input_boolean.lcd_display_rotation_enabled
+    displayed_entities:
+      - entity: sensor.kitchen_humidity
+        name: Humidity
+        unit: "%"
+      - entity: sensor.kitchen_temperature
+        name: Temperature
+        unit: "deg. C"
+      - entity: sensor.power_sensor
+        name: Energy Cons.
+        unit: "W"
+```
