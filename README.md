@@ -443,3 +443,31 @@ apps:
         target_state: "on"
         automation_enabled_entity: input_boolean.outside_light_automation_enabled
 ```
+
+### Timer switch controller
+
+This app can be used, if you want to control an entity with a button to turn it off for example and have it e.g. turned on again after a certain time. At the house of my parents we connected oxygen pumps of a large fishtank to homeassistant. If my parents want to look at the fish, they press the button and the oxygen pumps turn off. That way my parents can have a look at their precious fishes. After a given timeout (e.g. 15 minutes) the pumps go back on without any interaction with the button anymore.
+
+```
+allow_all_imports: true
+hass_is_global: true
+apps:
+  timer_switch_controller:
+    - button_sensor: [sensor showing button state in homeassistant]
+      switch_entity: [switch which will be turned off]
+      timer_entity: [timer entity which needs to be defined in homeassistant]
+      timeout_entity: [input number defining the timeout (in minutes) until entity will be turned on againg]
+```
+
+#### Example
+
+```yaml
+allow_all_imports: true
+hass_is_global: true
+apps:
+  timer_switch_controller:
+    - button_sensor: sensor.hue_smart_button_1_action
+      switch_entity: switch.oxygen_pump_switch
+      timer_entity: timer.reactivated_oxygen_pump_timer
+      timeout_entity: input_number.reactivate_oxygen_pump_timeout
+```
