@@ -515,6 +515,20 @@ data:
   path_to_lets_encrypt_volume: [path to volume of letsencrypt container on host machine]
 ```
 
+Because this service also accesses the host machine via ssh, you'll need to configure the following global settings in the pyscript file (also see [Home Server Update](### Home server update service)):
+
+```yaml
+allow_all_imports: true
+hass_is_global: true
+apps:
+  [...]
+global:
+  host_server:
+    ssh_key: [path to your ssh private key]
+    ssh_login: [ssh loging on your host machine]
+    ssh_sudo: [ssh passwort for using sudo on host machine]
+```
+
 ### Example
 
 Using it like described above with the cerificates renewal sensor and home assistant automation:
