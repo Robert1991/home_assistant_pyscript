@@ -3,7 +3,6 @@ import datetime
 import urllib.request as url_request
 import os
 from pathlib import Path
-from shutil import copyfile
 
 event_logger_instance = None
 
