@@ -14,14 +14,14 @@ homeassistant:
 pyscript: !include pyscript_config.yaml
 ```
 
-## Apps
+# Apps
 
-### Activity based entity control
+## Activity based entity control
 
 This app can be used to control an entity based on the state of some binary sensor detecting some activity. An example would be turning off the light when no actitvity was detected in a certain room. This app can also be used to toggle scenes based on activity. 
 
 
-#### Configuration in pyscript_config.yaml:
+### Configuration in pyscript_config.yaml:
 
 ```yaml
 allow_all_imports: true
@@ -45,7 +45,7 @@ apps:
           light_sensor_entity: [sensor displaying the current state of light emission which will be compared with the threshold]
 ```
 
-#### Examples:
+### Examples:
 
 *Turning off your TV in the living room based on activity detection in the same room:*
 ```yaml
@@ -124,11 +124,11 @@ bedroom_day_light_choosen_scene:
 ```
 
 
-### Battery observer
+## Battery observer
 
 This automation observes different entities displaying the battery state of certain devices. You can define an input number, to determine at which percentage you want a notification sent about low battery state.
 
-#### Configuration in pyscript_config.yaml:
+### Configuration in pyscript_config.yaml:
 
 ```yaml
 allow_all_imports: true
@@ -142,7 +142,7 @@ apps:
     reminder_timeout: [timeout for resending the notification in minutes]
 ```
 
-#### Example:
+### Example:
 
 ```yaml
 allow_all_imports: true
@@ -156,7 +156,7 @@ apps:
     reminder_timeout: 720
 ```
 
-### Entity Unavailable Notification Service
+## Entity Unavailable Notification Service
 
 This app currently logs if an entity gets unavailable. The plan is to have it send push notifcations in the future.
 
@@ -171,7 +171,7 @@ apps:
     - [...]
 ```
 
-#### Example
+### Example
 
 ```yaml
 allow_all_imports: true
@@ -186,7 +186,7 @@ apps:
       notify_every: 60
 ```
 
-### Home server update
+## Home server update
 
 With this app, you can setup pyscript to update your home assistant server, if it is run via docker compose on an ubuntu server using apt. In order to do that, you'll need an binary command line sensor indicating, that updates are available. This binary sensor works by using a sensor, which indicates the update count. This sensor is based on a command line sensor, also implemented within this respository.
 
@@ -223,7 +223,7 @@ apps:
     update_log: [file to store the logs produced by the home server update]
 ```
 
-#### Home server update service
+### Home server update service
 
 Another prerequisite to have pyscript updating your server, is to configure pyscript globally to be able to access the server, where home assistant is run on. Pyscript accesses your server via ssh, so you'll need to exchange ssh keys between your server and the home assistant container. After that you'll need to do the following global pyscript configurations:
 
@@ -240,7 +240,7 @@ global:
     ssh_sudo: [sudo password for sudo on server]
 ```
 
-#### Example
+### Example
 
 ```yaml
 allow_all_imports: true
@@ -255,7 +255,7 @@ global:
     ssh_sudo: !secret host_sudo
 ```
 
-### LCD Display Rotation
+## LCD Display Rotation
 
 I wrote this app, as I've contructed an ESP8266 microcontoller based LCD display which is able to receive messages to be displayed via MQTT message queue topics. The device listens to a specific mqtt topic and displays the message sent.
 
@@ -277,7 +277,7 @@ apps:
 
 ![IMG_1216](https://user-images.githubusercontent.com/8775020/201952749-ccfcf852-e65c-4ee6-90bc-4c81af222ca1.jpeg)
 
-#### Example
+### Example
 
 ```yaml
 allow_all_imports: true
@@ -299,7 +299,7 @@ apps:
         unit: "W"
 ```
 
-### Netatmo event logger
+## Netatmo event logger
 
 At the smart home at my parents house, we connected several netatmo security camers (e.g. https://www.netatmo.com/en-us/security/cam-outdoor). These cameras are able to detected humans, cars and animals. The netatmo event logger app will log these events and download the corresponding pictures from the netatmo cloud service. The events which will be logged with a picture are named "human", "animal", "vehicle", "movement" in the netatmo service. In order to get this automation running, you'll need to connect your netatmo account with your homeassistant (https://www.home-assistant.io/integrations/netatmo/). 
 At the moment, pictures will be put statically to "/config/tmp/" within the homeassistant docker container.
@@ -316,7 +316,7 @@ apps:
     max_snapshots: [number of snapshots to keep]
 ```
 
-#### Example
+### Example
 
 ```yaml
 allow_all_imports: true
@@ -332,7 +332,7 @@ apps:
     max_snapshots: 100
 ```
 
-### State observer
+## State observer
 
 With this app you can observe the state of a given entity and have several actions triggered, if the entity changes to a certain interesting state. An example would be sending a notification to open the window if the humidity in your bathroom is over a certain critical threshold. At my former flat, I had a door sensor connected to my fridge door. If the frigde was opened for longer than a given timeout (e.g. 70 seconds) I was notified on my phone. After closing the fridge door again, I got another notification. With this app you can have a mulitple actions when the observed state is met by the entity and when it was left again.
 
@@ -357,7 +357,7 @@ state_observer:
       - ...
 ```
 
-#### Examples:
+### Examples:
 
 Here the configuration for the described examples above:
 
@@ -411,7 +411,7 @@ apps:
             message: "Calm down and have a coffee"
 ```
 
-### Time based entity control
+## Time based entity control
 
 With this app you can toggle entites at given points of time. An example would be turning on a light at night time and turing it off at day time. Start and end of the interval will be given as input date_time.
 
@@ -429,7 +429,7 @@ apps:
     - ...
 ```
 
-#### Example
+### Example
 
 ```yaml
 allow_all_imports: true
@@ -444,7 +444,7 @@ apps:
         automation_enabled_entity: input_boolean.outside_light_automation_enabled
 ```
 
-### Timer switch controller
+## Timer switch controller
 
 This app can be used, if you want to control an entity with a button to turn it off for example and have it e.g. turned on again after a certain time. At the house of my parents we connected oxygen pumps of a large fishtank to homeassistant. If my parents want to look at the fish, they press the button and the oxygen pumps turn off. That way my parents can have a look at their precious fishes. After a given timeout (e.g. 15 minutes) the pumps go back on without any interaction with the button anymore.
 
@@ -456,10 +456,10 @@ apps:
     - button_sensor: [sensor showing button state in homeassistant]
       switch_entity: [switch which will be turned off]
       timer_entity: [timer entity which needs to be defined in homeassistant]
-      timeout_entity: [input number defining the timeout (in minutes) until entity will be turned on againg]
+      timeout_entity: [input number defining the timeout (in minutes) until entity will be turned on again]
 ```
 
-#### Example
+### Example
 
 ```yaml
 allow_all_imports: true
@@ -471,3 +471,31 @@ apps:
       timer_entity: timer.reactivated_oxygen_pump_timer
       timeout_entity: input_number.reactivate_oxygen_pump_timeout
 ```
+
+# Services
+
+## Light blink
+
+The light blink service can be used to have a light blink while a certain other entity is in a specific state. After that state was left, the light will toggle to its former state again. So if it was on, it will stay on and the other way around.
+
+Usage:
+```
+service: pyscript.light_blink
+data:
+  entity: [light which will be turned on/off]
+  state_entity: [entity defining the state when light will blink]
+  target_state: [target state which the entity needs to be in]
+  blink_timeout: [timeout between toggling in seconds]
+```
+
+### Example
+
+I use this service together with the state observer app, to have my kitchen light blink when the frigde door is opened too long (e.g. somebody forgot to close it):
+```
+service: pyscript.light_blink
+data:
+  entity: light.kitchen_ceiling_light
+  state_entity: binary_sensor.kitchen_sensor_door_sensor
+  target_state: "on"
+```
+
