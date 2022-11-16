@@ -490,7 +490,7 @@ data:
 
 ### Example
 
-I use this service together with the state observer app, to have my kitchen light blink when the frigde door is opened too long (e.g. somebody forgot to close it):
+I use this service together with the [state observer app](#state-observer), to have my kitchen light blink when the frigde door is opened too long (e.g. somebody forgot to close it):
 ```
 service: pyscript.light_blink
 data:
