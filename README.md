@@ -1,6 +1,6 @@
 # Home assistant pyscript automations
 
-This repository comprises my homeassistant automations (https://www.home-assistant.io/) written with pyscript (https://hacs-pyscript.readthedocs.io). I use these automations on my own smart home server as well as the one I've running at my parents place.
+This repository comprises my [homeassistant](https://www.home-assistant.io/) automations written with [pyscript](https://hacs-pyscript.readthedocs.io). I use these automations on my own smart home server as well as the one I've running at my parents place. Both my smart homes run on a [minisforum](https://www.minisforum.com/) server based on a dockerized infrastructure. Checkout my repository [home assistant docker compose](https://github.com/Robert1991/homeassistant_docker_compose) to see the docker compose setup of my infrastructure. 
 To use these automations, checkout this repository in your homeassistant conifguration directory and name it `pyscript`. Your pyscript configuration yaml file has to be placed outside the pyscript folder. Configure the following in your homeassistant configuration.yaml (e.g. you named your pyscript config yaml file 'pyscript_config.yaml'):
 
 ```yaml
@@ -301,7 +301,7 @@ apps:
 
 ## Netatmo event logger
 
-At the smart home at my parents house, we connected several netatmo security camers (e.g. https://www.netatmo.com/en-us/security/cam-outdoor). These cameras are able to detected humans, cars and animals. The netatmo event logger app will log these events and download the corresponding pictures from the netatmo cloud service. The events which will be logged with a picture are named "human", "animal", "vehicle", "movement" in the netatmo service. In order to get this automation running, you'll need to connect your netatmo account with your homeassistant (https://www.home-assistant.io/integrations/netatmo/). 
+At the smart home at my parents house, we connected several [netatmo security cameras](https://www.netatmo.com/en-us/security/cam-outdoor). These cameras are able to detected humans, cars and animals. The netatmo event logger app will log these events and download the corresponding pictures from the netatmo cloud service. The events which will be logged with a picture are named "human", "animal", "vehicle", "movement" in the netatmo service. In order to get this automation running, you'll need to connect your netatmo account with your homeassistant (see [here](https://www.home-assistant.io/integrations/netatmo/)). 
 At the moment, pictures will be put statically to "/config/tmp/" within the homeassistant docker container.
 
 ```yaml
@@ -501,7 +501,7 @@ data:
 
 ## Certificates renewal
 
-I use this service to renew my duckdns (https://www.duckdns.org/) letsencrypt (https://letsencrypt.org/) certificates by a homeassistant automation. Together with the Certificate Expiry Sensor (https://www.home-assistant.io/integrations/cert_expiry), I could automate renewing the letsencrypt certificates for my homeassistant. This service uses docker commands and certbot (https://certbot.eff.org/) on the host machine in order to achieve that. 
+I use this service to renew my [duckdns](https://www.duckdns.org/) [letsencrypt](https://letsencrypt.org/) certificates by a homeassistant automation. Together with the [Certificate Expiry Sensor](https://www.home-assistant.io/integrations/cert_expiry), I could automate renewing the letsencrypt certificates for my homeassistant. This service uses docker commands and [certbot](https://certbot.eff.org/) on the host machine in order to achieve that. 
 
 Usage:
 
