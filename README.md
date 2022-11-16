@@ -499,3 +499,39 @@ data:
   target_state: "on"
 ```
 
+## Certificates renewal
+
+I use this service to renew my duckdns (https://www.duckdns.org/) letsencrypt (https://letsencrypt.org/) certificates by a homeassistant automation. Together with the Certificate Expiry Sensor (https://www.home-assistant.io/integrations/cert_expiry), I could automate renewing the letsencrypt certificates for my homeassistant. This service uses docker commands and certbot (https://certbot.eff.org/) on the host machine in order to achieve that. 
+
+Usage:
+
+```yaml
+service: pyscript.renew_certificates
+data:
+  url: [your duckdns url]
+  email: [email used to register to duckdns]
+  token: [duckdns token for your url]
+  path_to_certificates: [path to certificates on host machine]
+  path_to_lets_encrypt_volume: [path to volume of letsencrypt container on host machine]
+```
+
+### Example
+
+Using it like described above with the cerificates renewal sensor and home assistant automation:
+
+```yaml
+automation:
+- alias: Renew Certificates
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.certificate_expiry_in_days
+      below: 10
+  action:
+    - service: pyscript.renew_certificates
+      data:
+        url: foo.duckdns.org
+        email: !secret letsencrypt_email
+        token: !secret duckdns_token
+        path_to_certificates: /home/foo/docker/homeassistant/certificates
+        path_to_lets_encrypt_volume: /home/foo/docker/homeassistant/volumes/letsencrypt
+```
