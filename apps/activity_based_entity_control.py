@@ -22,24 +22,30 @@ def get_seconds_from_input_number(input_number_entity):
 
 
 def create_motion_entity_control(entity, motion_sensor_entity, automation_enabled_entity, turn_off_timeout_entity, timer_entity,
-                                 turn_on_function, turn_off_function, turn_on_condition=None):
+                                 turn_on_function, turn_off_function, additional_turn_on_condition=None):
     motion_entity_control_id = "motion_entity_control_" + entity
 
+    state_trigger_watch_list = [motion_sensor_entity]
+    if additional_turn_on_condition is not None:
+        state_trigger_watch_list.append(
+            additional_turn_on_condition.get_state_variable())
+
     @task_unique(motion_entity_control_id + "_motion_trigger")
-    @state_trigger(motion_sensor_entity + " == 'on'")
+    @state_trigger(motion_sensor_entity + " == 'on'", watch=state_trigger_watch_list)
     def on_motion_detected():
         if automation_enabled_entity:
             if is_off(automation_enabled_entity):
                 log.info("skipping automation on " + entity + " as " +
                          automation_enabled_entity + " set to off")
                 return
+
         if not is_off(entity):
             if is_entity_in_state(timer_entity, "active"):
                 log.info("stopping timer " + timer_entity +
                          " because movement was detected by " + motion_sensor_entity)
                 timer.cancel(entity_id=timer_entity)
             return
-        if turn_on_condition is not None and not turn_on_condition():
+        if additional_turn_on_condition is not None and not additional_turn_on_condition.turn_on_condition():
             log.info("skip turning on " + entity +
                      " as turn on condition was not met")
             return
@@ -49,6 +55,11 @@ def create_motion_entity_control(entity, motion_sensor_entity, automation_enable
     @task_unique(motion_entity_control_id + "_motion_trigger")
     @state_trigger(motion_sensor_entity + " == 'off'")
     def on_motion_cleared():
+        if automation_enabled_entity:
+            if is_off(automation_enabled_entity):
+                log.info("skipping automation on " + entity + " as " +
+                         automation_enabled_entity + " set to off")
+                return
         if not is_off(entity):
             turn_off_timeout = get_seconds_from_input_number(
                 turn_off_timeout_entity)
@@ -201,24 +212,44 @@ def create_refresh_time_trigger_function(time_switch_configuration, controlled_e
     return state_tracker_id, refresh_time_trigger
 
 
-def is_light_intensity_sufficient(light_intensity_control):
-    light_sensor_entity = light_intensity_control["light_sensor_entity"]
-    threshold_entity = light_intensity_control["threshold_entity"]
-    current_light_sensor_value = float(state.get(light_sensor_entity))
-    current_threshold_value = float(state.get(threshold_entity))
-    if current_light_sensor_value > current_threshold_value:
-        log.info("light intensity sufficient: " +
-                 "{ " + light_sensor_entity +
-                 ": " + str(current_light_sensor_value) +
-                 " } higher than threshold { " + threshold_entity +
-                 ": " + str(current_threshold_value) + " }")
+class LightIntensityControl:
+    config_name = None
+    controlled_entity = None
+    light_sensor_entity = None
+    threshold_entity = None
+
+    def __init__(self, config_name, controlled_entity, threshold_entity, light_sensor_entity):
+        self.config_name = config_name
+        self.controlled_entity = controlled_entity
+        self.light_sensor_entity = light_sensor_entity
+        self.threshold_entity = threshold_entity
+
+    def get_state_variable(self):
+        return self.light_sensor_entity
+
+    def turn_on_condition(self):
+        if self.is_light_intensity_sufficient():
+            log.info(self.config_name + ": skip turning on " + self.controlled_entity +
+                     " as light was determined to be sufficient")
+            return False
         return True
-    log.info("light intensity insufficient: " +
-             "{ " + light_sensor_entity +
-             ": " + str(current_light_sensor_value) +
-             " } lower than threshold { " + threshold_entity +
-             ":" + str(current_threshold_value) + " }")
-    return False
+
+    def is_light_intensity_sufficient(self):
+        current_light_sensor_value = float(state.get(self.light_sensor_entity))
+        current_threshold_value = float(state.get(self.threshold_entity))
+        if current_light_sensor_value > current_threshold_value:
+            log.info("light intensity sufficient: " +
+                     "{ " + self.light_sensor_entity +
+                     ": " + str(current_light_sensor_value) +
+                     " } higher than threshold { " + self.threshold_entity +
+                     ": " + str(current_threshold_value) + " }")
+            return True
+        log.info("light intensity insufficient: " +
+                 "{ " + self.light_sensor_entity +
+                 ": " + str(current_light_sensor_value) +
+                 " } lower than threshold { " + self.threshold_entity +
+                 ":" + str(current_threshold_value) + " }")
+        return False
 
 
 class ActivityBasedEntityControlConfig:
@@ -323,19 +354,13 @@ class ActivityBasedEntityControlConfig:
                      " because movement was detected by " + self.motion_sensor_entity)
             scene.turn_on(entity_id=current_scene_entity_id)
 
-        def light_intensity_turn_on_condition():
-            if self.light_intensity_control is not None and is_light_intensity_sufficient(self.light_intensity_control):
-                log.info(self.config_name + ": skip turning on " + self.controlled_entity +
-                         " as light was determined to be sufficient")
-                return False
-            return True
-
         def turn_off_function():
             call_service_within_entity_domain(
                 self.controlled_entity, "turn_off", entity_id=self.controlled_entity)
 
-        log.info("light_control   " + str(self.light_intensity_control))
-
+        light_intensity_control_condition = LightIntensityControl(self.config_name, self.controlled_entity,
+                                                                  self.light_intensity_control["threshold_entity"],
+                                                                  self.light_intensity_control["light_sensor_entity"])
         return create_motion_entity_control(self.controlled_entity,
                                             self.motion_sensor_entity,
                                             self.activity_based_entity_control_enabled_entity,
@@ -343,7 +368,7 @@ class ActivityBasedEntityControlConfig:
                                             self.turn_off_timer_entity,
                                             turn_on_entity_scene_based,
                                             turn_off_function,
-                                            light_intensity_turn_on_condition)
+                                            light_intensity_control_condition)
 
 
 def register_entity_control_config(entity_control_config):
