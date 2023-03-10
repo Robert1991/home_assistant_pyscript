@@ -185,23 +185,6 @@ def get_scene_group_light_intensity_input_numbers(generated_input_number_file_pa
     return None
 
 
-def add_scene_light_intensity_to_input_numbers(new_light_scene):
-    normalized_group_name = new_light_scene.get_group_normalized()
-    generated_input_number_file_path = get_generated_input_numbers_path(
-        normalized_group_name)
-    generated_input_numbers = get_scene_group_light_intensity_input_numbers(
-        generated_input_number_file_path)
-    new_light_scene_input_number_name = new_light_scene.get_scene_name_normalized() + \
-        "_light_intensity"
-    new_light_scene_input_number = {new_light_scene_input_number_name: {
-        "initial": new_light_scene.get_light_intensity(), "max": 100, "min": 0, "step": 1}}
-    generated_input_numbers.update(new_light_scene_input_number)
-
-    write_yaml_dict_to_file(
-        get_generated_input_numbers_path(normalized_group_name), generated_input_numbers)
-    input_number.reload()
-
-
 def get_scene_input_select_options(light_scene_group, light_scene_array):
     light_scene_group_filter = \
         re.compile(
@@ -255,7 +238,7 @@ def regenerate_scene_input_selects(new_light_scene, all_light_scenes, time_based
         new_light_scene.create_light_scene_input_select_name("scene_generator_light_scene_generated")]
     if time_based_scene_config:
         time_based_scene_options = state.getattr(time_based_scene_config)
-        for option in time_based_scene_options:
+        for option in time_based_scene_options["options"]:
             option_split = option.split('/')
             if len(option_split) == 2:
                 input_select_names.append(option_split[1])
@@ -365,8 +348,6 @@ def create_light_scene(scene_name=None, light_group=None, scene_group=None, time
 
     regenerate_scene_input_selects(
         light_scene, stored_light_scenes, time_based_scene_config)
-    if light_intensity_control:
-        add_scene_light_intensity_to_input_numbers(light_scene)
 
 
 @service
@@ -393,9 +374,6 @@ def update_light_scene(scene_name=None, light_group=None, scene_group=None, ligh
         light_scene_file_path, new_light_scene_array)
 
     scene.reload()
-
-    if light_intensity_control:
-        add_scene_light_intensity_to_input_numbers(light_scene)
 
 
 @service
