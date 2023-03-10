@@ -13,8 +13,8 @@ def export_connected_clients(file_path):
     command_result = task.executor(
         run_remote_shell_command,
         "/etc/show_wifi_clients.sh",
-        "root@RPNRouter",
-        pyscript.config["global"]["host_server"]["ssh_key"])
+        pyscript.config["global"]["openwrt"]["ssh_login"],
+        pyscript.config["global"]["ssh"]["ssh_key"])
     if not command_result.returncode:
         wifi_connected_clients = {"connected": []}
         for line in command_result.stdout.decode().split("\n"):

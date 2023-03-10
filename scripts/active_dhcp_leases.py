@@ -13,8 +13,8 @@ def export_active_dhcp_leases(file_path):
     command_result = task.executor(
         run_remote_shell_command,
         "cat /tmp/dhcp.leases",
-        "root@RPNRouter",
-        pyscript.config["global"]["host_server"]["ssh_key"])
+        pyscript.config["global"]["openwrt"]["ssh_login"],
+        pyscript.config["global"]["ssh"]["ssh_key"])
     if command_result.returncode == 0:
         active_dhcp_leases = {"leases": []}
 

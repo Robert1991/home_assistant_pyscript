@@ -35,7 +35,7 @@ def run_upgrade_command(command, log_file_path):
 def run_update_command(command, log_file_path):
     std_out, std_err = task.executor(run_remote_apt_command, command,
                                      pyscript.config["global"]["host_server"]["ssh_login"],
-                                     pyscript.config["global"]["host_server"]["ssh_key"],
+                                     pyscript.config["global"]["ssh"]["ssh_key"],
                                      pyscript.config["global"]["host_server"]["ssh_sudo"],
                                      log_file_path)
     if std_err:

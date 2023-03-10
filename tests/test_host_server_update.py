@@ -19,9 +19,11 @@ def host_server_update_setup():
         ["log", "task", "notify", "pyscript", "run_remote_apt_command"])
     pyscript.config = {
         "global": {
+            "ssh": {
+                "ssh_key": ".ssh/id_rsa"
+            },
             "host_server": {
                 "ssh_login": "foo@server",
-                "ssh_key": ".ssh/id_rsa",
                 "ssh_sudo": "sudo!"
             }}}
 

@@ -15,9 +15,11 @@ def host_server_update_setup():
             "esp_home_automations": {
                 "esp_home_base_path": "/path/on/host/to/esphome"
             },
+            "ssh": {
+                "ssh_key": ".ssh/id_rsa"
+            },
             "host_server": {
-                "ssh_login": "foo@server",
-                "ssh_key": ".ssh/id_rsa",
+                "ssh_login": "foo@server"
             }}}
 
 

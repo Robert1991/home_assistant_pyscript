@@ -240,8 +240,9 @@ apps:
   home_server_update:
     update_log: [file to store the logs produced by the home server update]
 global:
-  host_server:
+  ssh:
     ssh_key: [path to homeassistant private ssh key]
+  host_server:
     ssh_login: [login on server]
     ssh_sudo: [sudo password for sudo on server]
 ```
@@ -263,8 +264,9 @@ apps:
   home_server_update:
     update_log: /config/tmp/apt_update.log
 global:
+  ssh:
+    ssh_key: [path to homeassistant private ssh key]
   host_server:
-    ssh_key: "/config/.ssh/id_rsa"
     ssh_login: "robert@some-server"
     ssh_sudo: !secret host_sudo
 ```
@@ -538,8 +540,9 @@ allow_all_imports: true
 hass_is_global: true
 apps: [...]
 global:
+  ssh:
+    ssh_key: [path to homeassistant private ssh key]
   host_server:
-    ssh_key: [path to your ssh private key]
     ssh_login: [ssh login on your host machine]
     ssh_sudo: [ssh password for using sudo on host machine]
 ```
@@ -576,8 +579,9 @@ allow_all_imports: true
 hass_is_global: true
 apps: [...]
 global:
-  host_server:
+  ssh:
     ssh_key: [path to your ssh private key]
+  host_server:
     ssh_login: [ssh login on your host machine]
     ssh_sudo: [ssh password for using sudo on host machine]
     home_assistant_docker_compose: [home assistant docker compose file, e.g "/home/user/docker/homeassistant/docker-compose.yaml"]
@@ -671,8 +675,9 @@ apps: [...]
 global:
   esp_home_automations:
     esp_home_base_path: [path to esp home directory on your host machine, e.g "/home/user/docker/volumes/esphome"]
-  host_server:
+  ssh:
     ssh_key: [path to your ssh private key]
+  host_server:
     ssh_login: [ssh login on your host machine]
     ssh_sudo: [ssh password for using sudo on host machine]
     home_assistant_docker_compose: [home assistant docker compose file, e.g "/home/user/docker/homeassistant/docker-compose.yaml"]
@@ -734,3 +739,7 @@ where `balcony_sensor_actor` represents the yaml configuration file `balcony_sen
 ### Home server update
 
 See [here](#home-server-update-service) and section above that.
+
+## OpenWRT services
+
+As I use OpenWRT on my router, I've written some services to extract data from my router. In order to use these services, you'll need to exchange ssh key's between your homeassistant container and the OpenWRT router.

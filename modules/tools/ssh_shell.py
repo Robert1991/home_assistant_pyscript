@@ -5,7 +5,7 @@ import subprocess
 def run_remote_shell_command(command, ssh_login, ssh_key_path, sudo_password=None):
     command_array = command.split(" ")
     if sudo_password:
-        command_array = ['ssh', '-i', ssh_key_path, ssh_login, '-F', '/config/.ssh/config'
+        command_array = ['ssh', '-i', ssh_key_path, ssh_login, '-F', '/config/.ssh/config',
                          'echo', sudo_password, "|"] + command_array
     else:
         command_array = ['ssh', '-i', ssh_key_path, '-F', '/config/.ssh/config',
@@ -23,7 +23,7 @@ def run_remote_apt_command(command_name, login, ssh_key_path, password, log_file
         log_file.write(command_result.stdout)
         if command_result.returncode != 0:
             log_file.write(
-                "error occured during execution of apt '" + command_name + "': ")
+                ("error occurred during execution of apt '" + command_name + "': ").encode())
             log_file.write(command_result.stderr)
             return None, command_result.stderr
     return command_result.stdout, None

@@ -21,7 +21,7 @@ def run_esp_home_device_update(esp_home_device_config):
         run_remote_shell_command,
         esp_home_device_docker_run_command,
         pyscript.config["global"]["host_server"]["ssh_login"],
-        pyscript.config["global"]["host_server"]["ssh_key"])
+        pyscript.config["global"]["ssh"]["ssh_key"])
     if command_result.returncode != 0:
         log.error("Running esp home update for " +
                   esp_home_device_config + " failed:\\n" + str(command_result.stderr))
@@ -30,5 +30,5 @@ def run_esp_home_device_update(esp_home_device_config):
     else:
         log.info("esp home device update for " +
                  esp_home_device_config + " was successful")
-        notify.persistent_notification(title="ESP Home Device Update Successfull", message="Device update for " +
+        notify.persistent_notification(title="ESP Home Device Update Successful", message="Device update for " +
                                        esp_home_device_config + " was successful.")

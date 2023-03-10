@@ -17,7 +17,7 @@ def renew_certificates(url, email, token, path_to_certificates, path_to_lets_enc
         run_remote_shell_command,
         command,
         pyscript.config["global"]["host_server"]["ssh_login"],
-        pyscript.config["global"]["host_server"]["ssh_key"])
+        pyscript.config["global"]["ssh"]["ssh_key"])
     if command_result.returncode != 0:
         log.error("Running certificate renewal for " + url +
                   " failed:\\n" + str(command_result.stderr))

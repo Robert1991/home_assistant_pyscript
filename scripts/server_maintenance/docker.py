@@ -72,4 +72,4 @@ def execute_docker_compose_command(command, docker_compose_path):
         run_remote_shell_command,
         docker_compose_command,
         pyscript.config["global"]["host_server"]["ssh_login"],
-        pyscript.config["global"]["host_server"]["ssh_key"])
+        pyscript.config["global"]["ssh"]["ssh_key"])
