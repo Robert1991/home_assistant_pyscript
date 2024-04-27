@@ -17,9 +17,9 @@ def send_heart_beat(heart_beat_receiver="foo.duckdns.org", webhook_id="some_id",
 
     current_try = 0
     while current_try < retry_count:
-        heart_beat_response = task.executor(
-            send_post_request, heart_beat_receiver_webhook_url, heart_beat_data)
         try:
+            heart_beat_response = task.executor(
+                send_post_request, heart_beat_receiver_webhook_url, heart_beat_data)
             if heart_beat_response.status_code != 200:
                 log.error(
                     "Unable to send heart beat to: " + heart_beat_receiver +
