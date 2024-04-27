@@ -1,7 +1,7 @@
 from tools.dict import get_logged_app_parameter_if_exists
 from tools.dict import replace_key_in_dict
 from tools.entity import call_service_within_entity_domain
-from tools.state import is_off, is_entity_in_state, get_state_as_date_time
+from tools.state import is_off, get_state_as_date_time
 import datetime
 
 time_triggers = {}
@@ -20,7 +20,10 @@ def get_time_of_day(datetime_object):
 
 
 def toggle_entity_to_state_if_necessary(entity_control_config_name, toggled_entity, target_state):
-    if not is_entity_in_state(toggled_entity, target_state):
+    current_entity_state = state.get(toggled_entity)
+    log.info(entity_control_config_name +
+             ": current state of " + toggled_entity + ": " + current_entity_state)
+    if current_entity_state != target_state:
         if target_state == "on":
             log.info(entity_control_config_name +
                      ": initializing, turning on " + toggled_entity)
