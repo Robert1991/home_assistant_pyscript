@@ -7,9 +7,8 @@ def send_get_request(url):
 
 
 @service
-def update_duckdns_ipaddress(duckdns_domain="duckdns_domain", external_ip_provider="sensor.some_sensor", duckdns_token_provider="sensor.token_provider"):
+def update_duckdns_ipaddress(duckdns_domain="duckdns_domain", external_ip_provider="sensor.some_sensor", duckdns_token="some duckdns token"):
     current_ip_address = state.get(external_ip_provider)
-    duckdns_token = state.get(duckdns_token_provider)
     duckdns_ip_address_update_url = "https://www.duckdns.org/update?domains=" + \
         duckdns_domain + "&token=" + duckdns_token + "&ip=" + current_ip_address
 
