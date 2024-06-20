@@ -211,7 +211,7 @@ def main():
     overview_dashboard = read_yaml("dashboards/overview.yaml")
 
     for room in get_rooms_from_model():
-        print(f"Updating light model for {room}")
+        print(f"Updating light model for {room.name}")
         groups = collect_all_light_groups_from_room(room)
         write_groups_to_yaml(room, groups)
         write_light_groups_to_yaml(room, groups)
