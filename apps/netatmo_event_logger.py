@@ -28,7 +28,7 @@ def log_netatmo_event_to_file(event, event_time, event_file_path):
         event_log.write(time_stamp + ": " + str(event) + "\n")
 
 
-@pyscript_executor
+@pyscript_compile
 def download_snapshot(snapshot_url, folder_path, time_stamp, max_snapshots):
     Path(folder_path).mkdir(parents=True, exist_ok=True)
     file_time_stamp = datetime.datetime.fromtimestamp(
@@ -46,11 +46,17 @@ def log_netatmo_event(event_data, event_time, cameras, event_log_path, max_snaps
                 picture_folder_path = "/config/tmp/" + \
                     camera["name"] + "/" + event_type + "/"
                 if "snapshot_url" in event_data:
-                    download_snapshot(
-                        event_data["snapshot_url"], picture_folder_path, event_time, max_snapshots)
+                    task.executor(download_snapshot,
+                        event_data["snapshot_url"], 
+                        picture_folder_path, 
+                        event_time, 
+                        max_snapshots)
                 else:
                     log.info("No downloadable snapshot")
-    log_netatmo_event_to_file(event_data, event_time, event_log_path)
+    task.executor(log_netatmo_event_to_file, 
+                  event_data, 
+                  event_time, 
+                  event_log_path)
 
 
 @time_trigger
