@@ -27,10 +27,13 @@ def send_heart_beat(heart_beat_receiver="foo.duckdns.org", webhook_id="some_id",
                     + ", text: " + str(heart_beat_response.text))
                 current_try = current_try + 1
             else:
+                log.info("Successfully send heart beat to: " +
+                         heart_beat_receiver)
                 return
         except:
             log.error(
                 "Unable to send heart beat to: " + heart_beat_receiver + "; connectivity exception received")
             current_try = current_try + 1
+            task.sleep(15)
     log.error("Unable to send heart beat to  " + heart_beat_receiver + " in " +
               str(retry_count) + " attempts")
